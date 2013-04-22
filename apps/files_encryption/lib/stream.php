@@ -71,8 +71,8 @@ class Stream {
 	private $rootView; // a fsview object set to '/'
 
 	public function stream_open( $path, $mode, $options, &$opened_path ) {
-		
-		$this->userId = \OCP\User::getUser();
+
+        $this->userId = \OCP\User::getUser();
 		
 		if ( ! isset( $this->rootView ) ) {
 
@@ -80,13 +80,15 @@ class Stream {
 
 		}
 
-		// Strip identifier text from path, this gives us the path relative to data/<user>/files
+
+        // Strip identifier text from path, this gives us the path relative to data/<user>/files
 		$this->relPath = str_replace( 'crypt://', '', $path );
-		
+
 		// rawPath is relative to the data directory
 		$this->rawPath = $this->userId . '/files/' . $this->relPath;
-		
-		if ( 
+
+
+        if (
 		dirname( $this->rawPath ) == 'streams' 
 		and isset( self::$sourceStreams[basename( $this->rawPath )] ) 
 		) {
@@ -101,7 +103,10 @@ class Stream {
 
 		} else {
 
-			if ( 
+            // Disable fileproxies so we can open the source file without recursive encryption
+            \OC_FileProxy::$enabled = false;
+
+            if (
 			$mode == 'w' 
 			or $mode == 'w+' 
 			or $mode == 'wb' 
@@ -116,11 +121,7 @@ class Stream {
 				$this->size = $this->rootView->filesize( $this->rawPath, $mode );
 				
 				//$this->size = filesize( $this->rawPath );
-				
 			}
-
-			// Disable fileproxies so we can open the source file without recursive encryption
-			\OC_FileProxy::$enabled = false;
 
 			//$this->handle = fopen( $this->rawPath, $mode );
 			
@@ -237,26 +238,26 @@ class Stream {
 			return true;
 		
 		}
-		
-		// Avoid problems with .part file extensions
+
+        // Avoid problems with .part file extensions
 		$this->relPath = Keymanager::fixPartialFilePath( $this->relPath );
-	
-		// If a keyfile already exists
-		if ( $this->rootView->file_exists( $this->userId . '/'. 'files_encryption' . '/' . 'keyfiles' . '/' . $this->relPath . '.key' ) ) {
-			
-			// Fetch and decrypt keyfile
-			// Fetch existing keyfile
-			$this->encKeyfile = Keymanager::getFileKey( $this->rootView, $this->userId, $this->relPath );
-			
-			$this->setUserProperty();
+
+		// Fetch and decrypt keyfile
+		// Fetch existing keyfile
+		$this->encKeyfile = Keymanager::getFileKey( $this->rootView, $this->userId, $this->relPath );
+
+        // If a keyfile already exists
+        if ( $this->encKeyfile ) {
+
+            $this->setUserProperty();
 			
 			$session = new Session( $this->rootView );
 			
 			$privateKey = $session->getPrivateKey( $this->userId );
 			
 			$shareKey = Keymanager::getShareKey( $this->rootView, $this->userId, $this->relPath );
-			
-			$this->plainKey = Crypt::multiKeyDecrypt( $this->encKeyfile, $shareKey, $privateKey );
+
+            $this->plainKey = Crypt::multiKeyDecrypt( $this->encKeyfile, $shareKey, $privateKey );
 			
 // 			trigger_error( '$this->relPath = '.$this->relPath );
 // 			trigger_error( '$this->userId = '.$this->userId);
@@ -429,7 +430,7 @@ class Stream {
 				
 				$encrypted = $this->preWriteEncrypt( $chunk, $this->plainKey );
 				
-				trigger_error("\$encrypted = $encrypted");
+				//trigger_error("\$encrypted = $encrypted");
 				
 				// Write the data chunk to disk. This will be 
 				// attended to the last data chunk if the file

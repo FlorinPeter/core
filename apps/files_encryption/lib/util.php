@@ -658,14 +658,15 @@ class Util {
 	
 		// This array will collect the filtered IDs
 		$userIds = array();
-	
+
+        // init empty array
+        $readyIds = $unreadyIds = array();
+
 		// Loop through users and create array of UIDs that need new keyfiles
 		foreach ( $unfilteredUsers as $user ) {
-		
-			$util = new Util( $this->view, $user );
+
+            $util = new Util( $this->view, $user );
 			
-			$readyIds = $unreadyIds = array();
-				
 			// Check that the user is encryption capable, or is the
 			// public system user 'ownCloud' (for public shares)
 			if ( 
@@ -690,7 +691,7 @@ class Util {
 		}
 		
 		return array ( 
-			'ready' => $userIds
+			'ready' => $readyIds
 			, 'unready' => $unreadyIds
 		);
 		
@@ -795,11 +796,11 @@ class Util {
 	 * @param string $filePath path of the file to be shared
 	 */
 	public function setSharedFileKeyfiles( Session $session, array $users, $filePath ) {
-	
-		// Make sure users are capable of sharing
+
+        // Make sure users are capable of sharing
 		$filteredUids = $this->filterShareReadyUsers( $users );
 		
-// 		trigger_error( print_r($filteredUids, 1) );
+ 		//trigger_error( print_r($filteredUids, 1) );
 		
 		if ( ! empty( $filteredUids['unready'] ) ) {
 		
@@ -812,7 +813,7 @@ class Util {
 		// Get public keys for each user, ready for generating sharekeys
 		$userPubKeys = Keymanager::getPublicKeys( $this->view, $filteredUids['ready'] ); // TODO: check this includes the owner's public key
 
-		\OC_FileProxy::$enabled = false;
+        \OC_FileProxy::$enabled = false;
 
 		// Get the current users's private key for decrypting existing keyfile
 		$privateKey = $session->getPrivateKey();
