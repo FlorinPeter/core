@@ -165,15 +165,23 @@ class Keymanager {
 	 * of the keyfile must be performed by client code
 	 */
 	public static function getFileKey( \OC_FilesystemView $view, $userId, $filePath ) {
-		
-		\OC\Files\Filesystem::initMountPoints($userId);
-		$filePath_f = ltrim( $filePath, '/' );
-		
-		$keyfilePath = '/' . $userId . '/files_encryption/keyfiles/' . $filePath_f . '.key';
-		
-		\OC_FileProxy::$enabled = false;
-		
-		if ( $view->file_exists( $keyfilePath ) ) {
+
+        $util = new Util( $view, $userId );
+
+        list($owner, $filename) = $util->getUidAndFilename($filePath);
+
+        \OC\Files\Filesystem::initMountPoints($userId);
+		$filePath_f = ltrim( $filename, '/' );
+
+        // Reformat path for use with OC_FSV
+        $path_split = explode( '/', $filePath_f );
+        $path_f = implode( '/', array_slice( $path_split, 2 ) );
+
+        $keyfilePath = '/' . $owner . '/files_encryption/keyfiles/' . $path_f . '.key';
+
+        \OC_FileProxy::$enabled = false;
+
+        if ( $view->file_exists( $keyfilePath ) ) {
 
 			$result =  $view->file_get_contents( $keyfilePath );
 			
@@ -301,11 +309,11 @@ class Keymanager {
 
 		$basePath = '/' . $owner . '/files_encryption/share-keys';
 		
-		$shareKeyPath = self::keySetPreparation( $view, $filename, $basePath, $owner );
+		$shareKeyPath = self::keySetPreparation( $view, $path, $basePath, $owner );
 		
 		$writePath = $basePath . '/' . $shareKeyPath . '.' . $userId . '.shareKey';
-		
-		\OC_FileProxy::$enabled = false;
+
+        \OC_FileProxy::$enabled = false;
 
 		$result = $view->file_put_contents( $writePath, $shareKey );
 		
@@ -369,12 +377,17 @@ class Keymanager {
 
 		list($owner, $filename) = $util->getUidAndFilename($filePath);
 
-		$shareKeyPath = '/' . $owner . '/files_encryption/share-keys/' . $filename . '.' . $userId . '.shareKey';
-		if ( $view->file_exists( $shareKeyPath ) ) {
+        // Reformat path for use with OC_FSV
+        $path_split = explode( '/', $filename );
+        $path_f = implode( '/', array_slice( $path_split, 2 ) );
+
+		$shareKeyPath = '/' . $owner . '/files_encryption/share-keys/' . $path_f . '.' . $userId . '.shareKey';
+
+        if ( $view->file_exists( $shareKeyPath ) ) {
 			
 			$result = $view->file_get_contents( $shareKeyPath );
-			
-		} else {
+
+        } else {
 		
 			$result = false;
 			
@@ -393,26 +406,22 @@ class Keymanager {
 		
 		\OC_FileProxy::$enabled = false;
 
-		$shareKeyPath = '/' . $userId . '/files_encryption/share-keys/' . $filePath;
+        $util = new Util( $view, $userId );
 
-		$result = false;
+        list($owner, $filename) = $util->getUidAndFilename($filePath);
+
+		$shareKeyPath = '/' . $owner . '/files_encryption/share-keys/' . $filePath;
+
+        $result = false;
 
 		if ( $view->is_dir($shareKeyPath) ) {
 			$result = $view->unlink($shareKeyPath);
 		} else {
 			$absPath = $view->getLocalFile($shareKeyPath);
-
-			$matches = glob(preg_quote($absPath).'.*.shareKey' );
-
-			if ( $matches ) {
-
-				foreach ( $matches as $ma ) {
-					unlink($ma);
-				}
-
-			}
-
-			$result = true;
+            $shareKeyPath = $absPath.'.'.$userId.'.shareKey';
+            if(unlink($shareKeyPath)) {
+                $result = true;
+            }
 		}
 
 		if ( ! $result ) {
@@ -435,7 +444,7 @@ class Keymanager {
 		$targetPath = ltrim( $path, '/' );
 		
 		$path_parts = pathinfo( $targetPath );
-		
+
 		// If the file resides within a subdirectory, create it
 		if ( 
 		isset( $path_parts['dirname'] )
