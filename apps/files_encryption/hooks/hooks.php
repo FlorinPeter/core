@@ -189,7 +189,7 @@ class Hooks {
 		if ( $params['itemType'] === 'file' ) {
 		
 			$view = new \OC_FilesystemView( '/' );
-			$session = new Session();
+			$session = new Session($view);
 			$userId = \OCP\User::getUser();
 			$util = new Util( $view, $userId );
 			$path = $util->fileIdToPath( $params['itemSource'] );
@@ -244,7 +244,7 @@ class Hooks {
 		if ( $params['itemType'] === 'file' ) {
 		
 			$view = new \OC_FilesystemView( '/' );
-			$session = new Session();
+			//$session = new Session($view);
 			$userId = \OCP\User::getUser();
 			$util = new Util( $view, $userId );
 			$path = $util->fileIdToPath( $params['itemSource'] );
